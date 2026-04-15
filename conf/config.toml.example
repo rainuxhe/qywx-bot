@@ -1,0 +1,40 @@
+[service]
+host = "127.0.0.1"
+port = 8000
+env = "dev"  # dev, prod
+
+[service.log]
+level = "debug"  # debug, info, warn, error
+format = "text"  # text, json
+output = "stdout"  # stdout, file
+file_path = "logs/app.log"
+max_size = 100  # MB
+max_backups = 7
+max_age = 30  # days
+
+[agent]
+base_url = "https://ark.cn-beijing.volces.com/api/coding/v3"
+api_key = "your-api-key-here"
+model = "doubao-seed-2-0-lite-260215"
+
+[qywx.v1]
+url = "https://qywx.rainux.cn/webhook"
+token = "your-token-here"
+encoding_aes_key = "your-encoding-aes-key-here"
+
+[qywx.v2]
+bot_id = "your-bot-id-here"
+secret = "your-secret-here"
+bot_name = "智能助手"
+wss_addr = "wss://openws.work.weixin.qq.com"
+
+[database.postgres]
+host = "127.0.0.1"
+port = 5432
+user = "your-db-user"
+password = "your-db-password"
+dbname = "your-db-name"
+
+channel_name = "task_queue"
+pool_max_size = 10
+pool_min_size = 4

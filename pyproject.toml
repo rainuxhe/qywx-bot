@@ -1,0 +1,62 @@
+[project]
+name = "qywx-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "deepagents>=0.5.2",
+    "fastapi>=0.135.1",
+    "langchain-mcp-adapters>=0.2.2",
+    "langchain-openai>=1.1.12",
+    "langgraph-checkpoint-postgres>=3.0.5",
+    "pycryptodome>=3.23.0",
+    "uvicorn>=0.41.0",
+    "wecom-aibot-python-sdk>=1.0.2",
+]
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+[tool.ruff]
+line-length = 120
+respect-gitignore = true
+exclude = [
+    "tmp",
+    ".venv",
+    "aiops-v1",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "Q", "D101", "D102", "D103", "N", "ANN"]
+ignore = ["ANN204", "ANN002", "ANN003", "E501"]
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 120
+indent-style = "space"
+# Use `\n` line endings for all files
+line-ending = "lf"
+quote-style = "double"
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+known_first_party = ["apis", "handlers", "pkg", "depends", "middlewares"]
+force_single_line = false
+force_sort_within_sections = true
+lines_after_imports = 2
+
+multi_line_output = 3
+include_trailing_comma = true
+use_parentheses = true
+ensure_newline_before_comments = true
+
+skip = ["tmp", ".venv", "__pycache__", "venv", ".git", "build", "dist"]
