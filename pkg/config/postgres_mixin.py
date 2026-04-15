@@ -1,3 +1,5 @@
+from urllib.parse import quote_plus
+
 from .base import BaseMixin
 
 
@@ -24,7 +26,9 @@ class PostgresMixin(BaseMixin):
 
     def get_postgres_dsn(self) -> str:
         """Get PostgreSQL connection string (DSN)"""
+        user = quote_plus(self.postgres_user)
+        password = quote_plus(self.postgres_password)
         return (
-            f"postgresql://{self.postgres_user}:{self.postgres_password}"
+            f"postgresql://{user}:{password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_dbname}"
         )
