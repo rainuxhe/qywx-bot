@@ -1,7 +1,8 @@
 from uuid import uuid4
 from deepagents import create_deep_agent
 from langchain_mcp_adapters.tools import load_mcp_tools
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import BaseTool
 from mcp.client.session import ClientSession
@@ -9,14 +10,14 @@ from mcp.client.streamable_http import streamable_http_client
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.store.postgres import AsyncPostgresStore
 from pkg.config import cfg
-from pkg.log import get_logger
+from pkg.log import logger
 from .shell_tool import create_shell_tool, init_confirmation_callback, confirm_command
 
 
 class AIAgent:
-    logger = get_logger("ai_agent")
+    # logger = get_logger("ai_agent")
     def __init__(self):
-        self.model: ChatOpenAI = None  # type: ignore
+        self.model: ChatAnthropic = None  # type: ignore
         self._mcp_server_url = f"http://127.0.0.1:{cfg.service_port}/mcp/"
         self._checkpointer_cm = None
         self._checkpointer = None
@@ -40,14 +41,22 @@ class AIAgent:
 
     async def start(self):
         if not self.model:
-            self.model = ChatOpenAI(
+            # self.model = ChatOpenAI(
+            #     base_url=cfg.agent_base_url,
+            #     api_key=cfg.agent_api_key,  # type: ignore
+            #     model=cfg.agent_model,
+            # )
+            self.model = ChatAnthropic(
+                model=cfg.agent_model,  # type: ignore
                 base_url=cfg.agent_base_url,
-                api_key=cfg.agent_api_key,  # type: ignore
-                model=cfg.agent_model,
+                api_key=cfg.agent_api_key,
+                temperature=0.2,
+                max_tokens=4096,  # type: ignore
+                effort="medium",
             )
 
         conn_string = cfg.get_postgres_dsn()
-        self.logger.debug(f"Connecting to Postgres for checkpointer: {conn_string}")
+        logger.debug(f"Connecting to Postgres for checkpointer: {conn_string}")
 
         self._checkpointer_cm = AsyncPostgresSaver.from_conn_string(conn_string)
         self._checkpointer = await self._checkpointer_cm.__aenter__()
@@ -57,7 +66,7 @@ class AIAgent:
         self._store = await self._store_cm.__aenter__()
         await self._store.setup()
 
-        self.logger.info("AIAgent started with Postgres checkpointer and store")
+        logger.info("AIAgent started with Postgres checkpointer and store")
 
     async def shutdown(self):
         self.model = None  # type: ignore
@@ -66,20 +75,20 @@ class AIAgent:
             try:
                 await self._checkpointer_cm.__aexit__(None, None, None)
             except Exception as e:
-                self.logger.warning(f"Error while closing checkpointer: {e}")
+                logger.warning(f"Error while closing checkpointer: {e}")
 
         if self._store_cm is not None:
             try:
                 await self._store_cm.__aexit__(None, None, None)
             except Exception as e:
-                self.logger.warning(f"Error while closing store: {e}")
+                logger.warning(f"Error while closing store: {e}")
 
         self._checkpointer = None
         self._store = None
         self._checkpointer_cm = None
         self._store_cm = None
 
-        self.logger.info("AIAgent resources have been cleaned up.")
+        logger.info("AIAgent resources have been cleaned up.")
 
     async def _create_root_agent(self, session: ClientSession):
         tools = await load_mcp_tools(session)
@@ -89,17 +98,18 @@ class AIAgent:
         root_agent = create_deep_agent(
             model=self.model,
             tools=tools,
-            system_prompt=f"你是一个智能助手，名字叫{cfg.qywx_bot_name}, 可以协助用户处理各种问题，并用温和积极的语气回答问题。回答的格式应该符合markdown规范。你可以使用 execute_shell_command 工具来执行 shell 命令。危险命令需要用户确认才能执行。",
+            system_prompt=f"你是一个企业微信机器人，名字叫{cfg.qywx_bot_name}, 可以协助用户处理各种问题，并用温和积极的语气回答问题。回答的格式应该符合markdown规范。你可以使用 execute_shell_command 工具来执行 shell 命令。危险命令需要用户确认才能执行。",
             checkpointer=self._checkpointer,
             store=self._store,
         )
         return root_agent
 
     async def astream(self, input: str, thread_id: str = ""):
+        """WARN: 企业微信流式输出有问题, 暂不使用该方法"""
         if not thread_id:
             thread_id = str(uuid4())
 
-        self.logger.debug(f"Connecting to mcp server: {self._mcp_server_url}, thread_id: {thread_id}")
+        logger.debug(f"Connecting to mcp server: {self._mcp_server_url}, thread_id: {thread_id}")
         async with streamable_http_client(self._mcp_server_url) as (read, write, get_session_id):
             async with ClientSession(read, write) as session:
                 await session.initialize()
@@ -127,7 +137,7 @@ class AIAgent:
         if not thread_id:
             thread_id = str(uuid4())
 
-        self.logger.debug(f"Connecting to mcp server: {self._mcp_server_url}, thread_id: {thread_id}")
+        logger.debug(f"Connecting to mcp server: {self._mcp_server_url}, thread_id: {thread_id}")
         async with streamable_http_client(self._mcp_server_url) as (read, write, get_session_id):
             async with ClientSession(read, write) as session:
                 await session.initialize()
@@ -136,6 +146,18 @@ class AIAgent:
                 resp = await root_agent.ainvoke(
                     input={"messages": [HumanMessage(content=input)]},
                     config={"configurable": {"thread_id": thread_id}},
+                    version="v2",
                 )
-                return resp["messages"][-1].content
+                # return resp["messages"][-1].content
+                return self._extract_text(resp.value["messages"][-1]) or "Sorry, sometimes life is a bit unpredictable."
                 
+    def _extract_text(self, message) -> str:
+        if not message or not hasattr(message, "content"):
+            return ""
+        content = message.content
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            texts = [block.get("text", "") for block in content if isinstance(block, dict) and block.get("type") == "text"]
+            return "".join(texts)
+        return ""

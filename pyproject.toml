@@ -3,13 +3,16 @@ name = "qywx-bot"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
-    "deepagents>=0.5.2",
-    "fastapi>=0.135.1",
-    "langchain-mcp-adapters>=0.2.2",
-    "langchain-openai>=1.1.12",
+    "deepagents>=0.6.11",
+    "fastapi>=0.138.0",
+    "httpx>=0.28.1",
+    "langchain-anthropic>=1.4.7",
+    "langchain-mcp-adapters>=0.3.0",
     "langgraph-checkpoint-postgres>=3.0.5",
+    "loguru>=0.7.3",
+    "psycopg[binary,pool]>=3.3.4",
     "pycryptodome>=3.23.0",
     "uvicorn>=0.41.0",
     "wecom-aibot-python-sdk>=1.0.2",
@@ -25,7 +28,6 @@ respect-gitignore = true
 exclude = [
     "tmp",
     ".venv",
-    "aiops-v1",
 ]
 
 [tool.ruff.lint]

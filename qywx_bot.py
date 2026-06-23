@@ -30,4 +30,4 @@ app = FastAPI(
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host=cfg.service_host, port=cfg.service_port)
+    uvicorn.run("qywx_bot:app", host=cfg.service_host, port=cfg.service_port)

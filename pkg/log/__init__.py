@@ -1,3 +1,6 @@
-from .log import get_logger, logger
+# from .log import get_logger, logger
+from .log_v2 import AppLogger
 
-__all__ = ["get_logger", "logger"]
+logger = AppLogger().get_logger()
+
+__all__ = ["logger"]
