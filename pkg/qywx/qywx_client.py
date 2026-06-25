@@ -4,6 +4,7 @@ from aibot import WSClient, WSClientOptions, generate_req_id, WsFrameHeaders
 from ai_agent import aiops
 from ai_agent.shell_tool import confirm_command
 from pkg.log import logger
+from internal.commands import load_chat_commands
 
 class QywxClient:
     """企业微信客户端, 通过websockets连接企业微信服务器, 接收消息并处理"""
@@ -43,13 +44,17 @@ class QywxClient:
             "text": {"content": f"您好！我是智能助手{cfg.qywx_bot_name}，有什么可以帮您的吗？"},
         })
 
-    async def _on_message_text(self, frame: WsFrameHeaders):
+    async def _on_message_text(self, frame: WsFrameHeaders) -> None:
         """处理文本消息事件"""
         logger.debug("Received text message")
         msg_id = frame.get("body", {}).get("msgid", "")
         user_id = frame.get("body", {}).get("from", {}).get("userid", "")
         content = frame.get("body", {}).get("text", {}).get("content", "")
         logger.debug(f"Message content: {content}, from user: {user_id}, msg_id: {msg_id}")
+
+        msg_list: list[str] = content.strip().split(" ")
+        if msg_list[0].strip().startswith("/"):
+            return await self._handle_command(frame, content)
 
         # 先设置当前用户
         aiops.set_current_user(user_id)
@@ -78,6 +83,22 @@ class QywxClient:
             logger.error(f"Error processing message: {e}", exc_info=True)
         finally:
             await self.ws_client.reply_stream(frame, stream_id, result, True)
+
+    async def _handle_command(self, frame: WsFrameHeaders, content: str) -> None:
+        cmders = load_chat_commands()
+        msg_list = content.strip().split(" ")
+        if msg_list[0] not in cmders:
+            await self.ws_client.reply(frame, body={"msgtype": "markdown", "markdown": {"content": "Unsportted command"}})
+            return
+
+        cmd_cls = cmders[msg_list[0]]["cmdcls"]
+        cmd_instance = cmd_cls(content)
+        rst = await cmd_instance.run()
+        await self.ws_client.reply(frame, body={"msgtype": "markdown", "markdown": {"content": rst}})
+        return
+        
+        
+        
 
     async def start(self):
         logger.info("Starting QywxClient...")
