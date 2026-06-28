@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import pkgutil
 from typing import Dict, TypedDict
+
 from pkg.log import logger
 
 from .base import ChatArgparser, ChatCommand
@@ -19,22 +20,21 @@ _loaded_chat_commands: Dict[str, CommandInfo] = {}
 
 class HelpCommand(ChatCommand):
     """内置的帮助命令, 用于展示所有可用命令的帮助信息"""
+
     main_name: str = "/help"
     description: str = "Show help message for all commands"
     is_visible: bool = True
 
     def create_parser(self) -> ChatArgparser:
         """HelpCommand 不需要参数, 直接返回一个空的ChatArgparser实例"""
-        return ChatArgparser(
-            prog="help", description="Show help message for all commands"
-        )
+        return ChatArgparser(prog="help", description="Show help message for all commands")
 
     async def run(self) -> str:
         """执行帮助命令, 返回所有可用命令的帮助信息"""
         if not _loaded_chat_commands:
             load_chat_commands()
 
-        help_message = "Available commands:\n\n"
+        help_message = "Available commands: Use '--help' to get each command usage\n\n"
         index = 1
         for main_name, info in _loaded_chat_commands.items():
             if info["is_visible"]:
@@ -65,11 +65,7 @@ def load_chat_commands() -> Dict[str, CommandInfo]:
         module = importlib.import_module(name)
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
-            if (
-                isinstance(attr, type)
-                and issubclass(attr, ChatCommand)
-                and attr is not ChatCommand
-            ):
+            if isinstance(attr, type) and issubclass(attr, ChatCommand) and attr is not ChatCommand:
                 main_name = getattr(attr, "main_name", None)
                 description = getattr(attr, "description", None)
                 is_enable = getattr(attr, "is_enable", False)

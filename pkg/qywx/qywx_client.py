@@ -1,13 +1,17 @@
 import re
-from pkg.config import cfg
-from aibot import WSClient, WSClientOptions, generate_req_id, WsFrameHeaders
+
+from aibot import WSClient, WSClientOptions, WsFrameHeaders, generate_req_id
+
 from ai_agent import aiops
-from ai_agent.shell_tool import confirm_command
-from pkg.log import logger
+from ai_agent.tools.shell_tool import confirm_command
 from internal.commands import load_chat_commands
+from pkg.config import cfg
+from pkg.log import logger
+
 
 class QywxClient:
     """企业微信客户端, 通过websockets连接企业微信服务器, 接收消息并处理"""
+
     # logger = get_logger("qywx_client", logging.INFO)
 
     def __init__(self) -> None:
@@ -27,10 +31,13 @@ class QywxClient:
         if not self.ws_client:
             raise RuntimeError("QywxClient not started, call start() first")
 
-        await self.ws_client.send_message(user_id, {
-            "msgtype": "text",
-            "text": {"content": text},
-        })
+        await self.ws_client.send_message(
+            user_id,
+            {
+                "msgtype": "text",
+                "text": {"content": text},
+            },
+        )
 
     async def _on_authenticated(self):
         """处理认证成功事件"""
@@ -39,10 +46,13 @@ class QywxClient:
     async def _on_event_enter_chat(self, frame: WsFrameHeaders):
         """处理用户进入聊天事件"""
         logger.debug("Received event: enter_chat")
-        await self.ws_client.reply_welcome(frame, {
-            "msgtype": "text",
-            "text": {"content": f"您好！我是智能助手{cfg.qywx_bot_name}，有什么可以帮您的吗？"},
-        })
+        await self.ws_client.reply_welcome(
+            frame,
+            {
+                "msgtype": "text",
+                "text": {"content": f"您好！我是智能助手{cfg.qywx_bot_name}，有什么可以帮您的吗？"},
+            },
+        )
 
     async def _on_message_text(self, frame: WsFrameHeaders) -> None:
         """处理文本消息事件"""
@@ -63,15 +73,15 @@ class QywxClient:
         confirm_match = re.match(r"^(确认|拒绝)\s+([a-zA-Z0-9]+)$", content.strip())
         if confirm_match:
             action, confirmation_id = confirm_match.groups()
-            approved = (action == "确认")
+            approved = action == "确认"
             await confirm_command(confirmation_id, approved)
             response_msg = "已确认执行命令。" if approved else "已拒绝执行命令。"
-            stream_id = generate_req_id('stream')
+            stream_id = generate_req_id("stream")
             await self.ws_client.reply_stream(frame, stream_id, response_msg, True)
             return
 
         # 正常处理 AI 消息
-        stream_id = generate_req_id('stream')
+        stream_id = generate_req_id("stream")
 
         await self.ws_client.reply_stream(frame, stream_id, "小脑瓜努力思考中...", False)
         result = ""
@@ -88,7 +98,9 @@ class QywxClient:
         cmders = load_chat_commands()
         msg_list = content.strip().split(" ")
         if msg_list[0] not in cmders:
-            await self.ws_client.reply(frame, body={"msgtype": "markdown", "markdown": {"content": "Unsportted command"}})
+            await self.ws_client.reply(
+                frame, body={"msgtype": "markdown", "markdown": {"content": "Unsportted command"}}
+            )
             return
 
         cmd_cls = cmders[msg_list[0]]["cmdcls"]
@@ -96,9 +108,6 @@ class QywxClient:
         rst = await cmd_instance.run()
         await self.ws_client.reply(frame, body={"msgtype": "markdown", "markdown": {"content": rst}})
         return
-        
-        
-        
 
     async def start(self):
         logger.info("Starting QywxClient...")

@@ -1,10 +1,11 @@
-import argparse
 from abc import ABC, abstractmethod
+import argparse
 from io import StringIO
 
 
 class ChatArgparser(argparse.ArgumentParser):
     """自定义的ArgumentParser, 用于解析聊天命令的参数, 重写error和exit方法, 捕获解析错误并返回错误信息, 而不是直接退出程序"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parse_error_triggered = False
@@ -40,6 +41,7 @@ class ChatArgparser(argparse.ArgumentParser):
 
 class ChatCommand(ABC):
     """聊天命令的抽象基类, 定义了命令的基本结构和接口"""
+
     def __init__(self, user_message: str):
         self.user_message = user_message
 

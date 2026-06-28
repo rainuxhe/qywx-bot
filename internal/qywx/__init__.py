@@ -1,4 +1,5 @@
-from .qywx_client import QywxClient
+from .qywx_api import QywxClient
+
 
 qywx_client = QywxClient()
 

@@ -24,11 +24,16 @@ class PostgresMixin(BaseMixin):
     def postgres_dbname(self) -> str:
         return self._get_conf("database", "postgres", "dbname", default="")
 
+    @property
+    def postgres_pool_size_min(self) -> int:
+        return self._get_conf("database", "postgres", "pool_min_size", default=2)
+
+    @property
+    def postgres_pool_size_max(self) -> int:
+        return self._get_conf("database", "postgres", "pool_max_size", default=10)
+
     def get_postgres_dsn(self) -> str:
         """Get PostgreSQL connection string (DSN)"""
         user = quote_plus(self.postgres_user)
         password = quote_plus(self.postgres_password)
-        return (
-            f"postgresql://{user}:{password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_dbname}"
-        )
+        return f"postgresql://{user}:{password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_dbname}"
