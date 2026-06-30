@@ -25,4 +25,4 @@ composition_mcp.add_middleware(  # 1st in, last out
         transform_errors=True,
     )
 )
-composition_mcp.add_middleware(LoggingMiddleware(logger=logger))  # type: ignore
+composition_mcp.add_middleware(LoggingMiddleware(logger=logger, include_payloads=True))  # type: ignore

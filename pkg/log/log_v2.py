@@ -51,7 +51,7 @@ class AppLogger:
                 retention=cfg.service.log.retention_days,
                 # compression="gz",
                 enqueue=True,  # 异步队列，避免阻塞
-                encoding="utf-8",
+                # encoding="utf-8",
             )
         logger.info("Logger initialized.")
 

@@ -11,6 +11,7 @@ class QywxClient:
     def __init__(self):
         self.ws_client: WSClient = None  # type: ignore
         self._aiops = AIAgent()
+        self._pending_interrupts: dict[str, str] = {}  # {user_id: msg_id}
 
     async def _send_message_callback(self, user_id: str, text: str):
         """发送消息的回调函数，供 shell tool 使用"""
@@ -83,25 +84,20 @@ class QywxClient:
         msg_id = frame.get("body", {}).get("msgid", "")
         user_id = frame.get("body", {}).get("from", {}).get("userid", "")
         content = frame.get("body", {}).get("text", {}).get("content", "")
-        logger.debug(f"Message content: {content}, from user: {user_id}, msg_id: {msg_id}")
+        quote_msg_id = frame.get("body", {}).get("quote", {}).get("msgid", "")
+        logger.debug(f"Full frame body: {frame.get('body')}")
+        logger.debug(
+            f"Message content: {content}, from user: {user_id}, msg_id: {msg_id}, quote_msg_id: {quote_msg_id}"
+        )
 
         msg_list: list[str] = content.strip().split(" ")
         if msg_list[0].strip().startswith("/"):
             return await self._handle_command(frame, content)
 
-        # 先设置当前用户
-        # self._aiops.set_current_user(user_id)
-
-        # # 检查是否是确认/拒绝消息
-        # confirm_match = re.match(r"^(确认|拒绝)\s+([a-zA-Z0-9]+)$", content.strip())
-        # if confirm_match:
-        #     action, confirmation_id = confirm_match.groups()
-        #     approved = (action == "确认")
-        #     await confirm_command(confirmation_id, approved)
-        #     response_msg = "已确认执行命令。" if approved else "已拒绝执行命令。"
-        #     stream_id = generate_req_id('stream')
-        #     await self.ws_client.reply_stream(frame, stream_id, response_msg, True)
-        #     return
+        # 检查是否有待处理的中断（用户回复审批时使用原消息的 thread_id）
+        pending_thread_id = self._pending_interrupts.get(user_id)
+        thread_id = pending_thread_id or msg_id
+        logger.debug(f"Using thread_id: {thread_id} (pending: {pending_thread_id or 'None'}, msg_id: {msg_id})")
 
         # 正常处理 AI 消息
         stream_id = generate_req_id("stream")
@@ -109,12 +105,23 @@ class QywxClient:
         await self.ws_client.reply_stream(frame, stream_id, "小脑瓜努力思考中...", False)
         result = ""
         try:
-            resp = await self._aiops.ainvoke(query=content, config=RunnableConfig(configurable={"thread_id": msg_id}))
+            resp = await self._aiops.ainvoke(
+                query=content,
+                config=RunnableConfig(configurable={"thread_id": thread_id}),
+            )
             result = resp
         except Exception as e:
             result = "Unknown error occurred. Please try again later."
             logger.error(f"Error processing message: {e}", exc_info=True)
         finally:
+            # 管理中断映射：检测审批提示 → 存映射；非审批 → 清除映射
+            if result.startswith("Do you approve"):
+                self._pending_interrupts[user_id] = msg_id
+                logger.debug(f"Saved pending interrupt: {user_id} -> {msg_id}")
+            else:
+                self._pending_interrupts.pop(user_id, None)
+                logger.debug(f"Cleared pending interrupt for {user_id}")
+            logger.debug(f"Final result: {result}")
             await self.ws_client.reply_stream(frame, stream_id, result, True)
 
     async def _handle_command(self, frame: WsFrameHeaders, content: str) -> None:

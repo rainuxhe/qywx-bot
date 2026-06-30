@@ -12,12 +12,12 @@ mcp = FastMCP(
     name="datetime_server",
     instructions="A server for datetime related operations",
 )
-mcp.add_middleware(
-    ErrorHandlingMiddleware(
-        include_traceback=True,
-        transform_errors=True,
-    )
-)
+# mcp.add_middleware(
+#     ErrorHandlingMiddleware(
+#         include_traceback=True,
+#         transform_errors=True,
+#     )
+# )
 
 
 class BasicTimeInfo(BaseModel):
