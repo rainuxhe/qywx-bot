@@ -1,14 +1,12 @@
 from functools import lru_cache
 from typing import Annotated, Literal
-from urllib.parse import quote_plus
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.tools import BaseTool, tool
+from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_mcp_adapters.tools import load_mcp_tools
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
-from pydantic import Field, validate_call
+from pydantic import Field
 
 from pkg.config import cfg
 
@@ -32,8 +30,8 @@ def get_llm(
 ) -> ChatAnthropic:
     return ChatAnthropic(
         model=model,  # type: ignore
-        base_url=cfg.agent_base_url,
-        api_key=cfg.agent_api_key,  # type: ignore
+        base_url=cfg.agent.base_url,
+        api_key=cfg.agent.api_key,
         temperature=temperature,
         max_tokens=max_tokens,  # type: ignore
         # streaming=True,
@@ -56,7 +54,7 @@ class MCPServers:
         self._client_composition = MultiServerMCPClient(
             {
                 "composition": {
-                    "url": f"http://127.0.0.1:{cfg.service_port}/api/mcp/composition",
+                    "url": f"http://127.0.0.1:{cfg.service.port}/api/mcp/composition",
                     "transport": "streamable_http",
                 }
             }
@@ -98,7 +96,8 @@ async def init_checkpointer(pg_pool: AsyncConnectionPool, is_setup: bool = False
         _PG_CHECKPOINTER = AsyncPostgresSaver(conn=pg_pool)
 
     if is_setup:
-        conn_string = f"postgresql://{quote_plus(cfg.postgres_user)}:{quote_plus(cfg.postgres_password)}@{cfg.postgres_host}:{cfg.postgres_port}/{cfg.postgres_dbname}"
+        # conn_string = f"postgresql://{quote_plus(cfg.postgres_user)}:{quote_plus(cfg.postgres_password)}@{cfg.postgres_host}:{cfg.postgres_port}/{cfg.postgres_dbname}"
+        conn_string = cfg.database.postgres.get_dsn()
         async with AsyncPostgresSaver.from_conn_string(conn_string) as temp_saver:
             await temp_saver.setup()
 

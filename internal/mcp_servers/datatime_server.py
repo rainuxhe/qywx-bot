@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Literal, Optional, Set, Tuple
+from datetime import datetime, timedelta
+from typing import Annotated, Literal, Set
 from zoneinfo import ZoneInfo, available_timezones
 
 from fastmcp import FastMCP
@@ -85,8 +85,8 @@ async def timezone_convert(utc_datetime: str, target_timezone: str) -> str:
         tz = ZoneInfo(target_timezone)
         local_dt = dt.astimezone(tz)
         return local_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
-    except Exception as e:
-        return f"Error converting time. Please ensure the input UTC datetime and target timezone format are correct."
+    except Exception:
+        return "Error converting time. Please ensure the input UTC datetime and target timezone format are correct."
 
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
@@ -136,13 +136,13 @@ async def datetime_offset(
                 delta = timedelta(milliseconds=offset)
             case _:
                 return (
-                    f"Invalid time unit. Please use 'seconds', 'minutes', 'hours', 'days', 'weeks', or 'milliseconds'."
+                    "Invalid time unit. Please use 'seconds', 'minutes', 'hours', 'days', 'weeks', or 'milliseconds'."
                 )
 
         new_dt = dt + delta
         return new_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
-    except Exception as e:
-        return f"Error calculating datetime offset. Please ensure the input UTC datetime format is correct and the offset is a valid integer."
+    except Exception:
+        return "Error calculating datetime offset. Please ensure the input UTC datetime format is correct and the offset is a valid integer."
 
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))

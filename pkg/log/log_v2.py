@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 
 from loguru import logger
@@ -23,8 +24,9 @@ class AppLogger:
     def _setup_logger(self):
         logger.remove()
 
-        log_dir = cfg.service_log_dir
-        log_dir.mkdir(parents=True, exist_ok=True)
+        log_dir = cfg.service.log.dir
+        log_dir_p = Path(log_dir)
+        log_dir_p.mkdir(parents=True, exist_ok=True)
 
         console_format = (
             "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
@@ -32,22 +34,22 @@ class AppLogger:
             "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
             "<level>{message}</level>"
         )
-        if cfg.service_log_output in ("STDOUT", "BOTH"):
+        if cfg.service.log.output in ("STDOUT", "BOTH"):
             logger.add(
                 sys.stdout,
                 format=console_format,
-                level=cfg.service_log_level,
-                colorize=cfg.service_log_colorize,
-                backtrace=cfg.service_log_backtrace,
-                diagnose=cfg.service_log_diagnose,
+                level=cfg.service.log.level,
+                colorize=cfg.service.log.colorize,
+                backtrace=cfg.service.log.backtrace,
+                diagnose=cfg.service.log.diagnose,
             )
-        if cfg.service_log_output in ("FILE", "BOTH"):
+        if cfg.service.log.output in ("FILE", "BOTH"):
             logger.add(
-                log_dir / "app.log",
+                log_dir_p / "app.log",
                 serialize=True,
-                level=cfg.service_log_level,
-                retention=cfg.service_log_retention_days,
-                compression="gz",
+                level=cfg.service.log.level,
+                retention=cfg.service.log.retention_days,
+                # compression="gz",
                 enqueue=True,  # 异步队列，避免阻塞
                 encoding="utf-8",
             )

@@ -1,24 +1,31 @@
 from pathlib import Path
 import tomllib
 
-from .agent_mixin import AgentMixin
-from .postgres_mixin import PostgresMixin
-from .qywx_mixin import QywxMixin
-from .service_mixin import ServiceMixin
-from .thirdparties_mixin import ThirdPartiesMixin
+from pydantic import BaseModel, ValidationError
+
+from .agent import AgentConfig
+from .postgres import DatabaseConfig
+from .qywx import QywxConfig
+from .service import ServiceConfig
+from .thirdparties import ThirdPartiesConfig
 
 
-class Config(QywxMixin, ServiceMixin, AgentMixin, PostgresMixin, ThirdPartiesMixin):
-    def __init__(self) -> None:
-        self._config_file = Path(__file__).parent.parent.parent / "conf" / "config.toml"
-        self._config = self._load_config()
+class Config(BaseModel):
+    service: ServiceConfig
+    database: DatabaseConfig
+    qywx: QywxConfig
+    agent: AgentConfig
+    thirdparties: ThirdPartiesConfig
 
-    def _load_config(self) -> dict:
-        if self._config:
-            return self._config
 
-        try:
-            with open(self._config_file, "rb") as f:
-                return tomllib.load(f)
-        except Exception as e:
-            raise RuntimeError(f"Failed to load config: {e}") from e
+def get_config() -> Config:
+    """Get the global configuration instance."""
+    config_file = Path(__file__).parent.parent.parent / "conf" / "config.toml"
+
+    with open(config_file, "rb") as f:
+        raw_config = tomllib.load(f)
+
+    try:
+        return Config.model_validate(raw_config)
+    except ValidationError as e:
+        raise RuntimeError(f"Failed to validate config: {e}") from e

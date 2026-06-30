@@ -12,9 +12,10 @@ def _init_pg_pool():
     global _PG_POOL
     if not _PG_POOL:
         _PG_POOL = AsyncConnectionPool(
-            f"postgresql://{quote_plus(cfg.postgres_user)}:{quote_plus(cfg.postgres_password)}@{cfg.postgres_host}:{cfg.postgres_port}/{cfg.postgres_dbname}",
-            min_size=cfg.postgres_pool_size_min,
-            max_size=cfg.postgres_pool_size_max,
+            # f"postgresql://{quote_plus(cfg.database.postgres.user)}:{quote_plus(cfg.database.postgres.password)}@{cfg.database.postgres.host}:{cfg.database.postgres.port}/{cfg.database.postgres.dbname}",
+            cfg.database.postgres.get_dsn(),
+            min_size=cfg.database.postgres.pool_min_size,
+            max_size=cfg.database.postgres.pool_max_size,
             open=False,  # 手动open, 避免阻塞
         )
 

@@ -5,12 +5,12 @@ from pkg.config import cfg
 
 config = {"mcpServers": {}}
 
-if cfg.thirdparties_dida365_enabled:
+if cfg.thirdparties.dida365.enabled:
     config["mcpServers"]["dida365"] = {  # type: ignore
-        "url": cfg.thirdparties_dida365_url,
+        "url": cfg.thirdparties.dida365.url,
         "transport": "streamable-http",
         "headers": {
-            "Authorization": f"Bearer {cfg.thirdparties_dida365_token}",
+            "Authorization": f"Bearer {cfg.thirdparties.dida365.token}",
         },
     }
 

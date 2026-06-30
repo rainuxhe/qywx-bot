@@ -4,8 +4,6 @@ from typing import List
 from deepagents import create_deep_agent
 from deepagents.middleware.subagents import CompiledSubAgent, SubAgent
 from langchain.agents.middleware import (
-    HumanInTheLoopMiddleware,
-    ToolCallRequest,
     ToolRetryMiddleware,
 )
 from langchain_core.messages import HumanMessage
@@ -46,7 +44,7 @@ class AIAgent:
             return
 
         if not self._llm:
-            self._llm = get_llm(model=cfg.agent_model)
+            self._llm = get_llm(model=cfg.agent.model)
 
         if not self._tools:
             await self._init_tools()
@@ -62,7 +60,7 @@ class AIAgent:
             tools=self._tools,
             checkpointer=checkpointer,
             system_prompt=(
-                f"你是一位名为{cfg.qywx_bot_name}的企业微信机器人, 请协助回答或处理用户的问题。回答的内容要准确、简洁。 语气风格要温和有礼、平易近人。"
+                f"你是一位名为{cfg.qywx.bot_name}的企业微信机器人, 请协助回答或处理用户的问题。回答的内容要准确、简洁。 语气风格要温和有礼、平易近人。"
             ),
             middleware=[
                 ToolRetryMiddleware(

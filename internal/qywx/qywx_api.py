@@ -1,5 +1,3 @@
-import re
-
 from aibot import WSClient, WSClientOptions, WsFrameHeaders, generate_req_id
 from langchain_core.runnables.config import RunnableConfig
 
@@ -48,7 +46,7 @@ class QywxClient:
             {
                 "msgtype": "text",
                 "text": {
-                    "content": f"您好！我是智能助手{cfg.qywx_bot_name}. 你可以输入'/help' 查看可用命令, 也可以使用自然语言进行交流。"
+                    "content": f"您好！我是智能助手{cfg.qywx.bot_name}. 你可以输入'/help' 查看可用命令, 也可以使用自然语言进行交流。"
                 },
             },
         )
@@ -58,8 +56,8 @@ class QywxClient:
         if not self.ws_client:
             self.ws_client = WSClient(
                 WSClientOptions(
-                    bot_id=cfg.qywx_bot_id,
-                    secret=cfg.qywx_secret,
+                    bot_id=cfg.qywx.bot_id,
+                    secret=cfg.qywx.secret,
                     logger=logger,
                 )
             )

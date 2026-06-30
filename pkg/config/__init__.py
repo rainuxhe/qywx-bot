@@ -1,6 +1,6 @@
-from .config import Config
+from .config import get_config
 
 
-cfg = Config()
+cfg = get_config()
 
 __all__ = ["cfg"]

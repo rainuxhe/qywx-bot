@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastmcp.utilities.lifespan import combine_lifespans
@@ -16,11 +17,8 @@ from internal.qywx import qywx_client
 # from pkg.qywx import qywx_client
 from pkg.config import cfg
 from pkg.database import get_pg_pool
+from pkg.log import logger
 from pkg.utils import http_client
-
-
-# datetime_mcp_app = datetime_mcp.http_app(path="/datetime")
-# composition_mcp_app = composition_mcp.http_app(path="/composition")
 
 
 @asynccontextmanager
@@ -58,8 +56,21 @@ def create_app() -> FastAPI:
     return app
 
 
+class LoguruHandler(logging.Handler):
+    def emit(self, record):
+        # 获取对应的 loguru 级别
+        level = logger.level(record.levelname).name
+        # 转发消息，保留异常信息
+        logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
+
+
 app = create_app()
 
 
 if __name__ == "__main__":
-    uvicorn.run("qywx_bot:app", host=cfg.service_host, port=cfg.service_port)
+    for log_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
+        log = logging.getLogger(log_name)
+        log.handlers = []  # 清除原有 handler
+        log.addHandler(LoguruHandler())  # 添加 loguru 转发器
+        log.propagate = False  # 关键：禁止向上传播，避免重复
+    uvicorn.run("qywx_bot:app", host=cfg.service.host, port=cfg.service.port, log_config=None)
